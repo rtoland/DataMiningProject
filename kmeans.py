@@ -1,5 +1,5 @@
 import pandas as pd
-from numpy import array, array_equal, sort, mean
+from numpy import array, array_equal, sort, mean, zeros
 from numpy.linalg import norm
 from random import seed, randint
 
@@ -25,6 +25,23 @@ def calc_distances(centroids, row):
     '''
     return (abs(norm(row - centroids[0])), abs(norm(row - centroids[1])))
 
+def update_centroids(clusters):
+    '''
+    Calculate the new centroids.
+
+    Takes in the clusters list and creates two new centroids initialized to zeros. Iterates over each index in each cluster and add the 
+    corresponding row from the dataframe. At the end, the new centroids are divided by 
+    '''
+    new_centroids = [zeros(COLS) for i in range(N_CLUSTERS)] # Two new zeros arrays to start accumulating the sum of each cluster
+    lengths = (len(x) for x in clusters) # Number of indices in each cluster
+    # For each cluster, iterates over each index and add that to the corresponding accumulator
+    for i in range(N_CLUSTERS):
+        for j in range(lengths[i]):
+            new_centroids[i] += df[centroids[i, j]]
+    # Returns the accumulators divided by the number of indices corresponding to each cluster to get the mean of each cluster.
+    # i.e., centroid
+    return [new_centroids[i] / lengths[i] for i in range(N_CLUSTERS)]
+
 seed() # Set random seed
 
 # Initial centroids are random
@@ -46,7 +63,7 @@ for i in range(DF_LEN):
     # Append the object's index to the cluster corresponding with the minimum distance
     clusters_1[distances.index(min(distances))].append(idx)
 
-centroids = [mean(x) for x in centroids] # Calculate new centroids
+centroids = update_centroids(clusters_1) # Calculate new centroids
 
 #Successive rounds
 while not finished:
@@ -59,5 +76,5 @@ while not finished:
             # Append the object's index to the cluster corresponding with the minimum distance
             # This time use the current clusters rather than previous clusters
             clusters_2[distances.index(min(distances))].append(idx)
-    centroids = [mean(x) for x in centroids] # Update centroids
+    centroids = update_centroids(clusters_2) # Update centroids
     finished = stop([array(clusters_1), array(clusters_2)]) # Check for termination
