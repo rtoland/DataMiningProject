@@ -30,8 +30,8 @@ for chunk in df:
 # 1. Avg Word Count per Review
 reviews['text'] = reviews['text'].astype(str)
 reviews['totalwords'] = reviews['text'].str.count(' ') + 1
-#data_top = reviews.head()
-#print(data_top)
+# print(reviews.head())
+
 
 """ !!!!!!!GRAPH!!!!!!!!!
 # is there a correlation between rating and word count? no
@@ -47,44 +47,128 @@ print(med_rating)
 # *****REVIEWER CENTRIC*************************************************************
 
 
+#Review Volume (Reviewer Centric)-------------------------------------
+
 # Avg reviews by user / day
-reviews['num_reviewsPerUser'] = reviews['rating'].groupby(reviews['user_id']).transform('count')
-reviews['countDays'] = reviews['mod_date'].groupby(reviews['user_id']).transform('nunique')
+reviews['num_reviewsPerUser'] = reviews['rating'].groupby(reviews['user_id']).transform('count') #count reviews per user
+reviews['countDays'] = reviews['mod_date'].groupby(reviews['user_id']).transform('nunique') #average reviews/day by user
 reviews['avgPerDay_User'] = reviews['num_reviewsPerUser'] / reviews['countDays']
 df3 = reviews.sort_values('avgPerDay_User', ascending=False)
 #print(df3.head(50))
 
-# 1a. Boxplot for average reviews/day by user 
+
+# number of unique user_ids with more than 3 avg reviews/day
+result = reviews.loc[reviews['avgPerDay_User'] > 3, 'user_id'].nunique()
+#print("number of users with more than 3 avg reviews/day: ",result)
+
+
+# Boxplot for average reviews/day by user 
 reviews.boxplot(column = 'avgPerDay_User').plot()
 plt.title('Average # of Reviews per Day by User')
 plt.show()
 
+# Quantiles
+result5 = reviews.loc[(reviews['avgPerDay_User'] > 3)]
+#print("num words - users with > avg 3 reviews per day: ",result5['totalwords'].quantile([0.25, 0.75, .5]))
+# get .25 and .75 quantiles for word counts for users with > 3 reviews/day
+#print("num words - all reviews: ",reviews['totalwords'].quantile([0.25, 0.75, .5]))
 
 
+#Review Content: Mean Word Count (Reviewer Centric)-----------------------
+
+# mean number of review words for each user
+reviews['meanWords_User'] = reviews['totalwords'].groupby(reviews['user_id']).transform('mean')
+df7 = reviews.sort_values('meanWords_User', ascending = False)
+#print("mean words by user: ",df7[['user_id','name','meanWords_User']].head(50))
+
+# metric for mean number of review words for each user (if less than 3 -> 1, else 1/mean)
+reviews['meanWords_UserMetric'] = np.where(reviews['meanWords_User'] < 3, 1, 1/reviews['meanWords_User'])
+#print(reviews[['user_id','name','meanWords_UserMetric']].head(50))
+
+# check one user
 one_user = reviews.query('user_id == 103183143751502462976.0')['name']
 #print("one_user " , one_user) 
 
+"""
+#Review Content: Key Word Count - Flag Overly Enthusiastic Reviews (Reviewer Centric)
 
-# 2. Identify potentially fake names (e.g., Jon Do, Jane Do, all numeric) that have 5 star reviews
-#reviews["user_id"] = reviews["user_id"].astype(str)
+#count number of key words that appear in text of each review, based on key_words list
+key_words = ['awesome','wonderful','excellent','great','fabulous','brilliant','exceptional','extraordinary','fantastic','magical','love','terrific','super']
+reviews['keyWordCount'] = reviews['text'].str.count(fr"\b(?:{'|'.join(key_words)})\b")
+print(reviews[['user_id','name','keyWordCount']].head())
+"""
+
+
+#Fake Names (Reviewer Centric)--------------------------------------------
+
+# Identify potentially fake reviews via user names (e.g., Jon Do, Jane Do, A Google User, all numeric) that have 5 star reviews
+# reviews["user_id"] = reviews["user_id"].astype(str)
 reviews['rating'] = pd.to_numeric(reviews['rating'], errors='coerce').fillna(0).astype(int)
-reviews['fakeNames'] = np.where(((reviews['name'].str.contains('^john doe$|^john do$|^jon doe$|^jon do$|^jane doe$|^jane do$',case=False)) | reviews['name'].str.isnumeric()) & (reviews['rating'] == 5),True,False)
+reviews['fakeNames'] = np.where(((reviews['name'].str.contains('^john doe$|^john do$|^jon doe$|^jon do$|^jane doe$|^jane do$|^a google user$',case=False)) | reviews['name'].str.isnumeric()) & (reviews['rating'] == 5),True,False)
 reviews['fakeNames'] = reviews['fakeNames'].astype(int)
-df4 = reviews.sort_values('fakeNames', ascending=False)
-#print(df4.head(50))
+df4 = reviews.sort_values('fakeNames', ascending=False) #sort to view results
+# print(df4.head(50))
 
+# total fake names per rating
 fakenamebyrating = reviews.groupby('rating').sum('fakeNames')
-#print(fakenamebyrating)
+# print(fakenamebyrating)
+
+# number of user_ids with >5 reviews/day and fake name flag
+result4 = reviews.loc[(reviews['avgPerDay_User'] > 5) & (reviews['fakeNames'] == 1),'user_id'].nunique()
+# print("user with avg reviews/day > 5 and fake name flag: ",result4)
+
+# Average rating per user - for Fake Name Metric
+reviews['meanRating_User'] = reviews['rating'].groupby(reviews['user_id']).transform('mean')
+# print("meanReviews_User ",reviews[['user_id','name','meanReviews_User']].head(50))
+
+reviews['FakeNameMetric'] = np.where((reviews['meanRating_User'] > 3) & (reviews['fakeNames'] == 1), 1, 0)
+#sortFN = reviews.sort_values('FakeNameMetric', ascending=False)
+#print(sortFN[['user_id','name','meanRating_User','fakeNames','FakeNameMetric']].head(50))
+
+# User Names per ID (Reviewer Centric)----------------------------------------
 
 
+
+"""!!!!!!!!!ADD GRAPHIC!!!!!!!!!"""""""""
+# number of unique names under user id
+reviews['numUserNames_User'] = reviews['name'].groupby(reviews['user_id']).transform('nunique')
+df5 = reviews.sort_values('numUserNames_User', ascending = False)
+#print(df5.head(50))
+
+
+# per rating, how many userids w/ more than one name?
+reviews['nameFlag'] = np.where(reviews['numUserNames_User'] > 1, True, False).astype(int) #flag if user has more than 1 name
+df6 = reviews.sort_values('nameFlag', ascending = False)
+#print(df6.head(50))
+
+# add distinct count of user_ids with more than one name by rating
+
+
+result1 = reviews.groupby('nameFlag')['user_id'].nunique()
+#print(result1)
+
+
+# Metric: user_ids with mean rewiew rating > 3 and more than 1 user name = 1, otherwise 0
+reviews['NameCountMetric'] = np.where((reviews['meanRating_User'] > 3) & (reviews['nameFlag'] == 1), 1, 0)
+
+# Total Metrics
+reviews['FakeMetric_User'] = reviews['meanWords_UserMetric'] + reviews['FakeNameMetric'] + reviews['NameCountMetric']
+print(reviews.head())
 
 # *****BUSINESS CENTRIC*************************************************************
+
 # search for user_id appearing more than once per business (with 4 or 5 stars)
 reviews['userIdCount'] = reviews.groupby(['gmap_id', 'user_id'])['user_id'].transform('count')
-df5 = reviews.sort_values('userIdCount', ascending=False)
-#print(df3.head(50))
+df8 = reviews.sort_values('userIdCount', ascending=False)
+#print(df8.head(50))
 
 
+
+# boolean - true if business has more than 1 review
+reviews['numReviews_bus'] = reviews['rating'].groupby(reviews['gmap_id']).transform('count')
+#print(reviews.head(50))
+
+    
 """ in progress - outliers in # of reviews in time series by business id
 
 reviews['Reviews_stdBus'] = reviews.groupby(['gmap_id', 'mod_date'])['rating'].transform('count')
@@ -101,8 +185,8 @@ datatypes = reviews.dtypes
 
 # add columns for word ranges 0-5 and >5 words - COMMENTED OUT SO "WORD_RANGE" COLUMN DOESN'T EXIST
 reviews['word_range'] = ["0-5" if x <=5 else ">5" for x in reviews['totalwords']]
-df3 = reviews.groupby(['word_range'])['rating'].mean()
-#print(df3)
+df9 = reviews.groupby(['word_range'])['rating'].mean()
+#print(df9)
 
 #correlation coefficient
 corr = reviews.word_range.corr(reviews['rating'])
@@ -113,5 +197,5 @@ corr = num_reviews.rating.corr(num_reviews['Avg_per_Day'])
 """
 
 # new dataframe with dropped columns:
-df2 = reviews.drop(columns = ['user_id','name','time','text','gmap_id','date','mod_date'], axis = 1)
+#df2 = reviews.drop(columns = ['user_id','name','time','text','gmap_id','date','mod_date'], axis = 1)
 
