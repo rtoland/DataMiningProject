@@ -89,15 +89,15 @@ reviews['meanWords_UserMetric'] = np.where(reviews['meanWords_User'] < 3, 1, 1/r
 one_user = reviews.query('user_id == 103183143751502462976.0')['name']
 #print("one_user " , one_user) 
 
-"""
+
 #Review Content: Key Word Count - Flag Overly Enthusiastic Reviews (Reviewer Centric)
 
-#count number of key words that appear in text of each review, based on key_words list
-key_words = ['awesome','wonderful','excellent','great','fabulous','brilliant','exceptional','extraordinary','fantastic','magical','love','terrific','super']
-reviews['keyWordCount'] = reviews['text'].str.count(fr"\b(?:{'|'.join(key_words)})\b")
-print(reviews[['user_id','name','keyWordCount']].head())
 """
-
+#count number of key words that appear in text of each review, based on key_words list
+key_words = ['!','awesome','best','better','brilliant','delightful','elated','enjoyed','excellent','exceptional','extraordinary','fabulous','fantastic','first class','first-class','fun','glorious','great','happy','happiest','kind','kindest','love','loved','magical','marvelous','outstanding','overjoyed','perfect','quality','recommend','splendid','super','superb','superior','supreme','terrific','top notch','top-notch','treasure','unparalleled','value','valued','valuable','wonderful','worth','worthy']
+reviews['keyWordCount'] = reviews['text'].str.count(fr"\b(?:{'|'.join(key_words)})\b")
+#print(reviews[['user_id','name','keyWordCount']].head())
+"""
 
 #Fake Names (Reviewer Centric)--------------------------------------------
 
@@ -153,7 +153,7 @@ reviews['NameCountMetric'] = np.where((reviews['meanRating_User'] > 3) & (review
 
 # Total Metrics
 reviews['FakeMetric_User'] = reviews['meanWords_UserMetric'] + reviews['FakeNameMetric'] + reviews['NameCountMetric']
-print(reviews.head())
+#print(reviews.head())
 
 # *****BUSINESS CENTRIC*************************************************************
 
@@ -163,11 +163,11 @@ df8 = reviews.sort_values('userIdCount', ascending=False)
 #print(df8.head(50))
 
 
-
+"""
 # boolean - true if business has more than 1 review
 reviews['numReviews_bus'] = reviews['rating'].groupby(reviews['gmap_id']).transform('count')
 #print(reviews.head(50))
-
+"""
     
 """ in progress - outliers in # of reviews in time series by business id
 
@@ -187,15 +187,19 @@ datatypes = reviews.dtypes
 reviews['word_range'] = ["0-5" if x <=5 else ">5" for x in reviews['totalwords']]
 df9 = reviews.groupby(['word_range'])['rating'].mean()
 #print(df9)
-
+"""
 #correlation coefficient
-corr = reviews.word_range.corr(reviews['rating'])
-#print("corr # words to rating is ", corr)
+corr = reviews.avgPerDay_User.corr(reviews['rating'])
+print("corr review freq to rating is ", corr)
 
+"""
 corr = num_reviews.rating.corr(num_reviews['Avg_per_Day'])
 #print(corr)
 """
+print("reviews col: ",list(reviews.columns))
 
 # new dataframe with dropped columns:
-#df2 = reviews.drop(columns = ['user_id','name','time','text','gmap_id','date','mod_date'], axis = 1)
+df2 = reviews.drop(columns = ['user_id','name','time','text','gmap_id','date','mod_date','nameFlag','meanWords_UserMetric','meanRating_User','FakeNameMetric','numUserNames_User','FakeMetric_User','NameCountMetric','userIdCount','meanWords_User'], axis = 1)
 
+
+print("df2 col: ",list(df2.columns))
