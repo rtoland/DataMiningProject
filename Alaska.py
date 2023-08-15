@@ -7,10 +7,9 @@ from sklearn.cluster import KMeans
 import seaborn
 from sklearn import preprocessing
 from sklearn.preprocessing import StandardScaler
+import seaborn as sns
  
 
-
-print("I started here")
 
 #pd.options.display.float_format = '{:.1f}'.format
 filename = 'review-Alaska.json'
@@ -41,11 +40,6 @@ reviews['totalwords'] = reviews['text'].str.count(' ') + 1
 # print(reviews.head())
 
 
-""" !!!!!!!GRAPH!!!!!!!!!
-# is there a correlation between rating and word count? no
-med_rating = reviews.groupby('rating').median('totalwords')
-print(med_rating)
-""" 
 
 # get .25 and .75 quantiles for word counts to set threshold 
 #print(reviews['totalwords'].quantile([0.25, 0.75, .5]))
@@ -61,29 +55,13 @@ reviews['num_reviewsPerUser'] = reviews['rating'].groupby(reviews['user_id']).tr
 reviews['countDays'] = reviews['mod_date'].groupby(reviews['user_id']).transform('nunique')
 reviews['avgPerDay_User'] = reviews['num_reviewsPerUser'] / reviews['countDays']
 
-"""
-# Avg reviews by user / day
-userDF = pd.DataFrame()
-userDF['user_id'] = reviews['user_id'].unique()
-userDF = userDF.merge(reviews, on='user_id', how = 'left')
-
-#df3 = userDF.sort_values('avgPerDay_User', ascending=False)
-
-print("userDF \n" , userDF.head())
-#print("sortedUserDF ", df3.head())
-"""
+#print(reviews.head())
 
 
 # number of unique user_ids with more than 3 avg reviews/day
 result = reviews.loc[reviews['avgPerDay_User'] > 3, 'user_id'].nunique()
 #print("number of users with more than 3 avg reviews/day: ",result)
 
-"""
-# Boxplot for average reviews/day by user 
-reviews.boxplot(column = 'avgPerDay_User').plot()
-plt.title('Average # of Reviews per Day by User')
-#plt.show()
-"""
 
 # Quantiles
 result5 = reviews.loc[(reviews['avgPerDay_User'] > 3)]
@@ -91,12 +69,6 @@ result5 = reviews.loc[(reviews['avgPerDay_User'] > 3)]
 # get .25 and .75 quantiles for word counts for users with > 3 reviews/day
 #print("num words - all reviews: ",reviews['totalwords'].quantile([0.25, 0.75, .5]))
 
-"""
-# add columns avg reviews/day = 1 versus > 1 review/day
-reviews['freq'] = ["<=20" if x <=20 else ">20" for x in reviews['avgPerDay_User']]
-df10 = reviews.groupby(['freq','rating'])['rating'].count()
-print("freq range - rating", df10)
-"""
 
 
 #Review Content: Mean Word Count (Reviewer Centric)-----------------------
@@ -161,8 +133,6 @@ reviews['FakeNameMetric'] = np.where((reviews['meanRating_User'] > 3) & (reviews
 # User Names per ID (Reviewer Centric)----------------------------------------
 
 
-
-"""!!!!!!!!!ADD GRAPHIC!!!!!!!!!"""""""""
 # number of unique names under user id
 reviews['numUserNames_User'] = reviews['name'].groupby(reviews['user_id']).transform('nunique')
 df5 = reviews.sort_values('numUserNames_User', ascending = False)
@@ -185,17 +155,11 @@ result1 = reviews.groupby('nameFlag')['user_id'].nunique()
 reviews['NameCountMetric'] = np.where((reviews['meanRating_User'] > 3) & (reviews['nameFlag'] == 1), 1, 0)
 
 # Total Metrics
-reviews['FakeMetric_User'] = reviews['meanWords_UserMetric']
+reviews['FakeMetric_User'] = reviews['meanWords_User'] 
 #print(reviews.head())
 
-"""
-# add columns avg reviews/day = 1 versus > 1 review/day
-reviews['metricRange'] = [" <= .5" if x <= .5 else ">.5" for x in reviews['FakeMetric_User']]
-df11 = reviews.groupby(['metricRange','rating'])['rating'].count()
-#print("metric range & ratings count", df11)
-"""
 
-print("how about here?")
+
 # *****BUSINESS CENTRIC*************************************************************
 
 """
@@ -242,81 +206,70 @@ print(corr)
 """
 
 
+df2 = reviews.drop(columns = ['time','text','gmap_id','date','mod_date','nameFlag','meanWords_UserMetric','meanRating_User','FakeNameMetric','numUserNames_User','NameCountMetric','countDays','num_reviewsPerUser','totalwords','rating','fakeNames','FakeMetric_User'], axis = 1)
 
-"""
-df2 = reviews.groupby(['user_id','avgPerDay_User','meanWords_UserMetric'])
-
-"""
-df2 = reviews[['user_id','name','avgPerDay_User','meanWords_UserMetric']]
-#print(df2[['user_id','name','avgPerDay_User','meanWords_UserMetric']].head())
-#df13 = df2.sort_values('avgPerDay_User', ascending=False)
-#print(df13)
-
-
-df2 = reviews.drop(columns = [ 'time','text','gmap_id','date','mod_date','nameFlag','meanWords_UserMetric','meanRating_User','FakeNameMetric','numUserNames_User','NameCountMetric','meanWords_User','countDays','num_reviewsPerUser','totalwords','rating','fakeNames'], axis = 1)
 
 df2 = df2.drop_duplicates(subset=['user_id'], keep="first")
-print("drop dup ids" , df2.head())
+print("drop dup ids" , df2.head(100))
+
 
 #print("df2 col: ",list(df2.columns))
+
 
 
 # *****k-Means*************************************************************
 
 
-"""
-plt.switch_backend('agg')
-
-clusters = KMeans(n_clusters=2, n_init='auto')
-df2['cluster'] = clusters.fit_predict(df2)
-seaborn.set(style='whitegrid')
-
-seaborn.scatterplot(data=df2, x='avgPerDay_User', y='FakeMetric_User', hue='cluster', palette='Set1')
-plt.title('Review Clusters')
-plt.xlabel('Average Review Per Day per User')
-plt.ylabel('FakeMetric_User')
-
-plt.savefig('clusters.png')
-plt.show()
-plt.close()
-"""
-
-print("it must be the plot")
-
-
-
-"""
-x = df2.values #returns a numpy array
-min_max_scaler = preprocessing.MinMaxScaler()
-x_scaled = min_max_scaler.fit_transform(x)
-dfn = pd.DataFrame(x_scaled)
-print(dfn)
-"""
-
-
 dfTrim = df2.drop(columns =['name','user_id'], axis = 1)
-dfs=dfTrim
+#dfs=dfTrim
 #dfs=(dfTrim-dfTrim.min())/(dfTrim.max()-dfTrim.min())
-df_cluster = dfTrim[['avgPerDay_User', 'FakeMetric_User']]
+df_cluster = dfTrim[['avgPerDay_User', 'meanWords_User']]
 kmeans = KMeans(n_clusters=2)
 kmeans.fit(df_cluster)
-plt.scatter(df_cluster['avgPerDay_User'], df_cluster['FakeMetric_User'], c=kmeans.labels_, cmap='viridis')
+
+
+
+kmeans.labels_  #added
+df2['cluster']= kmeans.labels_
+clusterCount = df2.groupby(['cluster'])['cluster'].count()
+print(clusterCount)
+
+numIds = df2.user_id.nunique()
+print("user id count ",numIds)
+
+"""
+dfBar = df2.drop(columns=['avgPerDay_User','meanWords_User'], axis=1)
+df2.groupby(["cluster"])["cluster"].count().plot(kind="bar", stacked=True)
+"""
+
+
+plt.scatter(df_cluster['avgPerDay_User'], df_cluster['meanWords_User'], c=kmeans.labels_, cmap='viridis')
 centers = kmeans.cluster_centers_
 plt.scatter(centers[:, 0], centers[:, 1], c='red', s=300, alpha=0.5)
+plt.title('Reviewer Clusters (K-means)')
+plt.xlabel('Average Reviews Per Day')
+plt.ylabel('Average Word Count')
+plt.xticks('avgPerDay_User')
+plt.yticks('meanWords_User')
+#plt.legend(loc='lower right')
+#plt.show()
+#plt.close()
+
+
+# *****Boxplot Avg Reviews/Day**********************************************
+
+
+# Boxplot for average reviews/day by user 
+df2.boxplot(column = 'avgPerDay_User').plot()
+plt.title('Average # of Reviews per Day by User')
+#plt.show()
+plt.close()
+
+
+
+# Boxplot for average avg words per review by user 
+df2.boxplot(column = 'meanWords_User').plot()
+plt.title('Average # of Words per Review (by User)')
 plt.show()
-
-
-
-
-
-"""
-scaled_df = StandardScaler().fit_transform(df2)
-print("got here?")
-print(scaled_df[:5])
-
-kmeans = KMeans(init="random", n_clusters=2, n_init=10, random_state=1)
-kmeans.fit(scaled_df)
-kmeans.labels_
-df2['cluster'] = kmeans.labels_
-print(df2.head(100))
-"""
+describe = df2.describe()
+print(describe)
