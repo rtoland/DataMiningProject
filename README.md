@@ -24,4 +24,6 @@ Can we uncover paterns and use data mining to detect fake reviews?
 The application of this knowledge can help protect consumers and honest businesses. Overall this will help prevent wasteful spending. Consumers do not want to waste their time and money, so honest review platforms would conclude to higher quality products and services. 
 
 ## Video Link
+
 ## Final Project Paper Link
+
