@@ -19,5 +19,9 @@ What is the average words per review per user?
   
 Can we uncover paterns and use data mining to detect fake reviews?
 * By using the K-means data mining technique, we discovered that the average word count was a big detector for fake reviews. If the word count was under 200, it fell into the fake reviewers cluster.
+
+## Application of this knowledge
+The application of this knowledge can help protect consumers and honest businesses. Overall this will help prevent wasteful spending. Consumers do not want to waste their time and money, so honest review platforms would conclude to higher quality products and services. 
+
 ## Video Link
 ## Final Project Paper Link
