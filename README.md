@@ -26,4 +26,5 @@ The application of this knowledge can help protect consumers and honest business
 ## Video Link
 The video presentation can be found in this repo at https://github.com/rtoland/DataMiningProject/blob/main/video1060425332.zip
 ## Final Project Paper Link
+The Final Project Paper can be found in this repo (https://github.com/rtoland/DataMiningProject/files/12341385/Group4_FakeGoogleReviews_Part4.pdf)
 
